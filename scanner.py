@@ -31,7 +31,8 @@ class Scanner(object):
 
     def scan(self):
         state = 0
-        while True:
+        while self.pointer <= len(self.code):
+            # print(state)
             if state == 0:
                 next_char = self.code[self.pointer]
                 self.pointer += 1
@@ -67,14 +68,18 @@ class Scanner(object):
                 elif next_char == '\0':
                     state = 16
                 else:
-                    raise Exception("Error in scanning")
+                    print('Scanner Error')
+                    self.begin = self.pointer
+                    state = 0
             elif state == 1:
                 next_char = self.code[self.pointer]
                 self.pointer += 1
                 if next_char == '*':
                     state = 2
                 else:
-                    raise Exception("Error in scanning")
+                    print('Scanner Error')
+                    self.begin = self.pointer
+                    state = 0
             elif state == 2:
                 next_char = self.code[self.pointer]
                 self.pointer += 1
@@ -132,7 +137,9 @@ class Scanner(object):
                 if next_char.isdigit():
                     state = 10
                 else:
-                    raise Exception("Error in scanning")
+                    print('Scanner Error')
+                    self.begin = self.pointer
+                    state = 0
             elif state == 10:
                 next_char = self.code[self.pointer]
                 self.pointer += 1
@@ -175,3 +182,8 @@ class Scanner(object):
                 self.last_token = 'EOF'
                 self.symbol_table.add_table(self.last_token, type='EOF', scope=self.current_scope)
                 break
+            else:
+                print('Scanner Error')
+                self.pointer += 1
+                self.begin = self.pointer
+                state = 0
