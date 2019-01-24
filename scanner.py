@@ -108,7 +108,7 @@ class Scanner(object):
                 if self.code[self.begin:self.pointer] not in self.keywords:
                     self.last_token = (self.code[self.begin:self.pointer], 'id')
                 else:
-                    self.last_token = (self.code[self.begin:self.pointer], 'keyword')
+                    self.last_token = (self.code[self.begin:self.pointer], self.code[self.begin:self.pointer])
                 self.begin = self.pointer
                 break
             elif state == 9:
