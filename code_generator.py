@@ -1,9 +1,12 @@
+from symbol_table import *
+
+
 class CodeGenerator(object):
     def __init__(self, symbol_table):
         self.while_switch_stack = []
         self.while_stack = []
+        self.declaration_stack = []
         self.semantic_stack = []
-        # self.temp = []
         self.temp_pointer = 500
         self.pb = []
         self.i = 0
@@ -17,14 +20,39 @@ class CodeGenerator(object):
         self.temp_pointer += 4
         return t
 
+    def get_data(self, size):
+        d = self.data_pointer
+        self.data_pointer += size * 4
+        return d
+
+    def declaration_pop(self, k):
+        self.declaration_stack = self.declaration_stack[:-k]
+
     def pop(self, k):
-        self.semantic_stack.pop(-k)
+        self.semantic_stack = self.semantic_stack[:-k]
 
     def push(self, item):
         self.semantic_stack.append(item)
 
-    def get_id_addr(self, id, scope):
-        return 0 # later developed!
+    def push_type(self, type):
+        self.declaration_stack.append(type)
+
+    def push_id(self, id):
+        self.declaration_stack.append(id)
+
+    def add_single_symbol_table(self):
+        d = self.get_data(1)
+        self.symbol_table.append(IDRow(self.declaration_stack[-1], 'id_single', self.declaration_stack[-2], d))
+        self.declaration_pop(2)
+
+    def declaration_push_num(self, num):
+        self.declaration_stack.append(num)
+
+    def add_array_symbol_table(self):
+        d = self.get_data(self.declaration_stack[-1])
+        self.symbol_table.append(ArrayRow(self.declaration_stack[-2], 'id_array', self.declaration_stack[-3], d,
+                                          self.declaration_stack[-1]))
+        self.declaration_pop(3)
 
     def mult(self):
         t = self.get_temp()
@@ -45,10 +73,6 @@ class CodeGenerator(object):
 
     def push_num(self, num):
         self.semantic_stack.append('#' + str(num))
-
-    def push_id_addr(self, id):
-        addr = self.get_id_addr(id, self.scope_stack[-1])
-        self.semantic_stack.append(addr)
 
     def addr_finder(self):
         t = self.get_temp()
