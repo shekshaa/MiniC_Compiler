@@ -11,20 +11,17 @@ class Scanner(object):
                 '[': 'bo', ']': 'bc',
                 '{': 'ao', '}': 'ac'}
 
-    def __init__(self, code_address, symbol_table):
+    def __init__(self, code_address):
         self.code = open(code_address).read()
         self.code += '\0'
-        self.last_token = None
-        self.symbol_table = symbol_table
+        self.last_token = (None, None)
         self.pointer = 0
         self.begin = 0
-        self.current_scope = 0
-        self.stack = [('c', 0)]
         self.last_valid_token = None
 
     def get_next_token(self):
         self.scan()
-        while self.last_token == 'comment' or self.last_token == 'whitespace':
+        while self.last_token[1] == 'comment' or self.last_token[1] == 'whitespace':
             self.scan()
         self.last_valid_token = self.last_token
         return self.last_token
@@ -32,7 +29,6 @@ class Scanner(object):
     def scan(self):
         state = 0
         while self.pointer <= len(self.code):
-            # print(state)
             if state == 0:
                 next_char = self.code[self.pointer]
                 self.pointer += 1
@@ -52,18 +48,6 @@ class Scanner(object):
                 elif next_char == '=':
                     state = 13
                 elif next_char in self.other_op:
-                    if next_char == '{':
-                        if self.stack[-1] == ('switch', 0):
-                            self.stack[-1] = ('switch', 1)
-                        else:
-                            self.stack.append(('c', 0))
-                            self.current_scope += 1
-                    elif next_char == '}':
-                        if self.stack[-1] == ('switch', 1):
-                            self.stack.pop(1)
-                        else:
-                            self.stack.pop(1)
-                            self.current_scope -= 1
                     state = 12
                 elif next_char == '\0':
                     state = 16
@@ -98,7 +82,7 @@ class Scanner(object):
                     state = 2
             elif state == 4:
                 self.begin = self.pointer
-                self.last_token = 'comment'
+                self.last_token = ('comment', 'comment')
                 break
             elif state == 5:
                 next_char = self.code[self.pointer]
@@ -110,7 +94,7 @@ class Scanner(object):
             elif state == 6:
                 self.pointer -= 1
                 self.begin = self.pointer
-                self.last_token = 'whitespace'
+                self.last_token = ('whitespace', 'whitespace')
                 break
             elif state == 7:
                 next_char = self.code[self.pointer]
@@ -121,15 +105,11 @@ class Scanner(object):
                     state = 8
             elif state == 8:
                 self.pointer -= 1
-                self.last_token = self.code[self.begin:self.pointer]
+                if self.code[self.begin:self.pointer] not in self.keywords:
+                    self.last_token = (self.code[self.begin:self.pointer], 'id')
+                else:
+                    self.last_token = (self.code[self.begin:self.pointer], 'keyword')
                 self.begin = self.pointer
-                self.symbol_table.add_table(self.last_token,
-                                            type='keyword' if self.last_token in self.keywords else 'id',
-                                            scope=self.current_scope)
-                if self.last_token not in self.keywords:
-                    self.last_token = 'id'
-                if self.last_token == 'switch':
-                    self.stack.append(('switch', 0))
                 break
             elif state == 9:
                 next_char = self.code[self.pointer]
@@ -149,16 +129,12 @@ class Scanner(object):
                     state = 11
             elif state == 11:
                 self.pointer -= 1
-                self.last_token = self.code[self.begin:self.pointer]
+                self.last_token = (self.code[self.begin:self.pointer], 'num')
                 self.begin = self.pointer
-                self.symbol_table.add_table(self.last_token, type='num', scope=self.current_scope)
-                self.last_token = 'num'
                 break
             elif state == 12:
-                self.last_token = self.code[self.begin:self.pointer]
+                self.last_token = (self.code[self.begin:self.pointer], self.code[self.begin:self.pointer])
                 self.begin = self.pointer
-                self.symbol_table.add_table(self.last_token, type=self.typ_dict[self.last_token],
-                                            scope=self.current_scope)
                 break
             elif state == 13:
                 next_char = self.code[self.pointer]
@@ -168,19 +144,16 @@ class Scanner(object):
                 else:
                     state = 15
             elif state == 14:
-                self.last_token = self.code[self.begin:self.pointer]
+                self.last_token = (self.code[self.begin:self.pointer], self.code[self.begin:self.pointer])
                 self.begin = self.pointer
-                self.symbol_table.add_table(self.last_token, type='eq', scope=self.current_scope)
                 break
             elif state == 15:
                 self.pointer -= 1
-                self.last_token = self.code[self.begin:self.pointer]
+                self.last_token = (self.code[self.begin:self.pointer], self.code[self.begin:self.pointer])
                 self.begin = self.pointer
-                self.symbol_table.add_table(self.last_token, type='assign', scope=self.current_scope)
                 break
             elif state == 16:
-                self.last_token = 'EOF'
-                self.symbol_table.add_table(self.last_token, type='EOF', scope=self.current_scope)
+                self.last_token = ('EOF', 'EOF')
                 break
             else:
                 print('Scanner Error')
