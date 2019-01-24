@@ -24,6 +24,21 @@ class NumRow(SymbolTableRow):
         self.var_type = 'int'
 
 
+class FunctionRow(SymbolTableRow):
+    def __init__(self, token, type, return_type, address, return_param):
+        super(FunctionRow, self).__init__(token, type)
+        self.return_type = return_type
+        self.address = address
+        self.param_list = []
+        self.return_param = return_param
+
+    def add_param_single(self, token, type, var_type, address):
+        self.param_list.append(IDRow(token, type, var_type, address))
+
+    def add_param_array(self, token, type, var_type, address, size):
+        self.param_list.append(ArrayRow(token, type, var_type, address, size))
+
+
 class SymbolTable(object):
     def __init__(self):
         self.table = []
