@@ -74,15 +74,26 @@ class CodeGenerator(object):
     def push_num(self, num):
         self.semantic_stack.append('#' + str(num))
 
-    def addr_finder(self):
+    def push_id_row(self):
+        line = None  # later will be developed"
+        self.push(self.symbol_table[line].address)
+        pass
+
+    def push_base(self):
+        self.push(self.symbol_table[self.semantic_stack[-1]].address)
+
+    def array_addr_finder(self):
         t = self.get_temp()
         self.pb[self.i] = ('*', '#4', self.semantic_stack[-1], t)
         self.i += 1
         t1 = self.get_temp()
         self.pb[self.i] = ('+', t, self.semantic_stack[-2], t1)
         self.i += 1
+        t2 = self.get_temp()
+        self.pb[self.i] = ('=', '@' + str(t), t2)
+        self.i += 1
         self.pop(2)
-        self.push(t1)
+        self.push(t2)
 
     def assign(self):
         self.pb[self.i] = ('=', self.semantic_stack[-1], self.semantic_stack[-2], )
@@ -170,3 +181,11 @@ class CodeGenerator(object):
         top = self.top_while_switch()
         self.pb[top] = ('jp', self.i)
         self.while_switch_stack.pop(-1)
+
+    def param_assign(self):
+        func_row = self.symbol_table[self.semantic_stack[-4]]
+        self.pb[self.i] = ('=', func_row.param_list[func_row.counter].address, self.semantic_stack[-1],)
+        func_row.counter += 1
+        self.i += 1
+        self.pop(1)
+
