@@ -16,6 +16,13 @@ class CodeGenerator(object):
         self.symbol_table = symbol_table
         self.scope_stack = [0]
 
+    def push_scope(self):
+        self.scope_stack.append(len(self.symbol_table))
+
+    def pop_scope(self):
+        self.symbol_table = self.symbol_table[:self.scope_stack[-1]]
+        self.scope_stack.pop(-1)
+
     def get_temp(self):
         t = self.temp_pointer
         self.temp_pointer += 4
@@ -78,10 +85,12 @@ class CodeGenerator(object):
     def push_num(self, num):
         self.semantic_stack.append('#' + str(num))
 
-    def push_id_row(self):
-        line = None  # later will be developed"
-        self.push(self.symbol_table[line].address)
-        pass
+    def push_id_row_address(self, id):
+        row, address = self.symbol_table.search(id)
+        if row == -1:
+            raise Exception('Semantic Error not defined parameter')
+        self.push(row)
+        self.push(address)
 
     def push_base(self):
         self.push(self.symbol_table[self.semantic_stack[-1]].address)
@@ -207,7 +216,7 @@ class CodeGenerator(object):
         self.push(t)
 
     def error_void_type(self):
-        print('Invalid input type')
+        raise Exception('Invalid input type')
 
     def add_func(self):
         d1 = self.get_data(1)
@@ -229,6 +238,7 @@ class CodeGenerator(object):
         self.declaration_pop(2)
 
     def pop_func_stack(self):
+        self.symbol_table[self.function_stack[-1]].is_closed = True
         self.function_stack.pop(-1)
 
     def set_return(self):
@@ -237,4 +247,3 @@ class CodeGenerator(object):
         row_num = self.function_stack[-1]
         self.pb[self.i] = ('jp', '@' + str(self.symbol_table[row_num].return_place),)
         self.pop(1)
-
