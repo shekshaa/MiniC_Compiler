@@ -196,9 +196,12 @@ class CodeGenerator(object):
     def jump_func_assign_return(self):
         self.pb[self.i] = ('jp', self.semantic_stack[-2],)
         self.i += 1
-        self.pb[self.i] = ('=', self.semantic_stack[-1],)
+        t = self.get_temp()
+        self.pb[self.i] = ('=', self.semantic_stack[-1], t)
         self.i += 1
+        self.symbol_table[self.semantic_stack[-3]].counter = 0
         self.pop(3)
+        self.push(t)
 
     def error_void_type(self):
         print('Invalid input type')
