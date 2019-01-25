@@ -54,7 +54,7 @@ class CodeGenerator(object):
         self.declaration_pop(2)
 
     def declaration_push_num(self, num):
-        self.declaration_stack.append(num)
+        self.declaration_stack.append('#' + str(num))
 
     def add_array_symbol_table(self):
         d = self.get_data(self.declaration_stack[-1])
@@ -92,8 +92,11 @@ class CodeGenerator(object):
         self.push(row)
         self.push(address)
 
-    def push_base(self):
-        self.push(self.symbol_table[self.semantic_stack[-1]].address)
+    def remove_line(self):
+        self.semantic_stack.pop(-2)
+
+    def pop_exp(self):
+        self.pop(1)
 
     def array_addr_finder(self):
         t = self.get_temp()
@@ -111,7 +114,7 @@ class CodeGenerator(object):
     def assign(self):
         self.pb[self.i] = ('=', self.semantic_stack[-1], self.semantic_stack[-2], )
         self.i += 1
-        self.pop(2)
+        self.pop(1)
 
     def save(self):
         self.push(self.i)
