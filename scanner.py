@@ -39,7 +39,7 @@ class Scanner(object):
                 elif next_char.isalpha():
                     state = 7
                 elif next_char == '+' or next_char == '-':
-                    if self.last_valid_token in self.pre_num:
+                    if self.last_valid_token[1] in self.pre_num:
                         state = 12
                     else:
                         state = 9
