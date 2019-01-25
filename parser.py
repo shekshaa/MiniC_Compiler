@@ -55,18 +55,21 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 9:
                 if self.token == 'id':
+                    self.code_generator.push_id(self.lexeme)
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 10
                 else:
                     self.invalid_input_error()
             elif self.state == 10:
                 if self.token == '(':
+                    self.code_generator.add_func()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 11
                 elif self.token == '[':
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 15
                 elif self.token == ';':
+                    self.code_generator.add_single_symbol_table()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 18
                 else:
@@ -97,6 +100,7 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 15:
                 if self.token == 'num':
+                    self.code_generator.declaration_push_num(self.lexeme)
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 16
                 else:
@@ -109,6 +113,7 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 17:
                 if self.token == ';':
+                    self.code_generator.add_array_symbol_table()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 18
                 else:
@@ -117,26 +122,32 @@ class Parser(object):
                 self.move_back()
             elif self.state == 19:
                 if self.token == 'void':
+                    self.code_generator.push_type('void')
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 20
                 elif self.token == 'int':
+                    self.code_generator.push_type('int')
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 20
                 else:
                     self.invalid_input_error()
             elif self.state == 20:
                 self.move_back()
+                if self.state == 31 and self.code_generator.semantic_stack[-1] == 'void':
+                    self.code_generator.error_void_type()
             elif self.state == 21:
                 if self.token == 'void':
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 22
                 elif self.token == 'int':
+                    self.code_generator.push_type('int')
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 25
                 else:
                     self.invalid_input_error()
             elif self.state == 22:
                 if self.token == 'id':
+                    self.code_generator.error_void_type()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 23
                 elif self.token in Follow['params']:
@@ -161,6 +172,7 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 25:
                 if self.token == 'id':
+                    self.code_generator.push_id(self.lexeme)
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 23
                 else:
@@ -197,6 +209,7 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 31:
                 if self.token == 'id':
+                    self.code_generator.push_id(self.lexeme)
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 32
                 else:
@@ -216,11 +229,13 @@ class Parser(object):
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 35
                 elif self.token in Follow['Y']:
-                    self.state = 33
+                    self.code_generator.add_single_id_param()
+                    self.state = 36
                 else:
                     self.invalid_input_error()
             elif self.state == 35:
                 if self.token == ']':
+                    self.code_generator.add_array_id_param()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 36
                 else:
@@ -229,6 +244,7 @@ class Parser(object):
                 self.move_back()
             elif self.state == 37:
                 if self.token == '{':
+                    self.code_generator.push_scope()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 38
                 else:
@@ -249,12 +265,15 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 39:
                 if self.token == '}':
+                    self.code_generator.pop_scope()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 40
                 else:
                     self.invalid_input_error()
             elif self.state == 40:
                 self.move_back()
+                if self.state == 18:
+                    self.code_generator.pop_func_stack()
             elif self.state == 41:
                 if self.token in First['stmt']:
                     self.stack.append(41)
@@ -294,6 +313,10 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 44:
                 self.move_back()
+                if self.state == 55:
+                    self.code_generator.if_jp()
+                if self.state == 61:
+                    self.code_generator.while_end()
             elif self.state == 45:
                 if self.token == ';':
                     self.lexeme, self.token = self.get_next_token()
@@ -302,9 +325,11 @@ class Parser(object):
                     self.stack.append(46)
                     self.state = 83
                 elif self.token == 'break':
+                    self.code_generator.break_jp()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 46
                 elif self.token == 'continue':
+                    self.code_generator.continue_jp()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 46
                 elif self.token in Follow['exp']:
@@ -343,6 +368,7 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 51:
                 if self.token == ')':
+                    self.code_generator.save()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 52
                 else:
@@ -356,6 +382,7 @@ class Parser(object):
                     print('Missing')
             elif self.state == 53:
                 if self.token == 'else':
+                    self.code_generator.if_jpf_save()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 54
                 else:
@@ -379,6 +406,7 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 57:
                 if self.token == '(':
+                    self.code_generator.while_label()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 58
                 else:
@@ -394,6 +422,7 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 59:
                 if self.token in ')':
+                    self.code_generator.save()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 60
                 else:
@@ -431,6 +460,7 @@ class Parser(object):
                 self.move_back()
             elif self.state == 65:
                 if self.token == ';':
+                    self.code_generator.set_return()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 64
                 else:
@@ -443,6 +473,7 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 67:
                 if self.token == '(':
+                    self.code_generator.switch_label()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 68
                 else:
@@ -482,6 +513,7 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 72:
                 if self.token == '}':
+                    self.code_generator.end_switch()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 73
                 else:
@@ -496,12 +528,14 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 75:
                 if self.token == 'num':
+                    self.code_generator.push_num(self.lexeme)
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 76
                 else:
                     self.invalid_input_error()
             elif self.state == 76:
                 if self.token == ':':
+                    self.code_generator.cmp_save()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 77
                 else:
@@ -516,6 +550,8 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 78:
                 self.move_back()
+                if self.state == 71:
+                    self.code_generator.end_case()
             elif self.state == 79:
                 if self.token == 'default':
                     self.lexeme, self.token = self.get_next_token()
@@ -545,9 +581,11 @@ class Parser(object):
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 84
                 elif self.token == 'num':
+                    self.code_generator.push_num(self.lexeme)
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 86
                 elif self.token == 'id':
+                    self.code_generator.push_id_row_address(self.lexeme)
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 88
                 else:
@@ -638,6 +676,10 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 93:
                 self.move_back()
+                if self.state == 46:
+                    self.code_generator.pop_exp()
+                if self.state == 93:
+                    self.code_generator.assign()
             # elif self.state == 94:
             #     if self.token == 'id':
             #         self.lexeme, self.token = self.get_next_token()
@@ -656,9 +698,11 @@ class Parser(object):
             #     self.move_back()
             elif self.state == 97:
                 if self.token == '[':
+                    self.code_generator.remove_line()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 98
                 elif self.token in Follow['K']:
+                    self.code_generator.remove_line()
                     self.state = 100
                 else:
                     self.invalid_input_error()
@@ -673,6 +717,7 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 99:
                 if self.token == ']':
+                    self.code_generator.array_addr_finder()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 100
                 else:
@@ -695,9 +740,11 @@ class Parser(object):
             #     self.move_back()
             elif self.state == 104:
                 if self.token == '<':
+                    self.code_generator.save_operator(self.lexeme)
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 105
                 elif self.token == '==':
+                    self.code_generator.save_operator(self.lexeme)
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 105
                 elif self.token in Follow['J']:
@@ -717,9 +764,11 @@ class Parser(object):
                 self.move_back()
             elif self.state == 107:
                 if self.token == '+':
+                    self.code_generator.save_operator(self.token)
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 108
                 elif self.token == '-':
+                    self.code_generator.save_operator(self.token)
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 108
                 elif self.token in Follow['M']:
@@ -756,6 +805,8 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 112:
                 self.move_back()
+                if self.state == 106:
+                    self.code_generator.add_sub_compare()
             elif self.state == 113:
                 if self.token in First['factor']:
                     self.stack.append(114)
@@ -775,6 +826,8 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 115:
                 self.move_back()
+                if self.state == 107:
+                    self.code_generator.add_sub_compare()
             elif self.state == 116:
                 if self.token == '*':
                     self.lexeme, self.token = self.get_next_token()
@@ -796,12 +849,14 @@ class Parser(object):
                 self.move_back()
             elif self.state == 119:
                 if self.token == 'num':
+                    self.code_generator.push_num(self.lexeme)
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 122
                 elif self.token == '(':
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 120
                 elif self.token == 'id':
+                    self.code_generator.push_id_row_address(self.lexeme)
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 123
                 else:
@@ -823,6 +878,8 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 122:
                 self.move_back()
+                if self.state == 116:
+                    self.code_generator.mult()
             elif self.state == 123:
                 if self.token == '(':
                     self.lexeme, self.token = self.get_next_token()
@@ -879,9 +936,11 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 131:
                 if self.token == ',':
+                    self.code_generator.param_assign()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 132
                 elif self.token in Follow['args']:
+                    self.code_generator.param_assign()
                     self.state = 133
                 else:
                     self.invalid_input_error()
@@ -896,3 +955,5 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 133:
                 self.move_back()
+                if self.state == 90 or self.state == 121:
+                    self.code_generator.jump_func_assign_return()
