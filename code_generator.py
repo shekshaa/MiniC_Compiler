@@ -6,6 +6,7 @@ class CodeGenerator(object):
         self.while_switch_stack = []
         self.while_stack = []
         self.declaration_stack = []
+        self.function_stack = []
         self.semantic_stack = []
         self.temp_pointer = 500
         self.pb = []
@@ -50,7 +51,10 @@ class CodeGenerator(object):
 
     def add_array_symbol_table(self):
         d = self.get_data(self.declaration_stack[-1])
-        self.symbol_table.append(ArrayRow(self.declaration_stack[-2], 'id_array', self.declaration_stack[-3], d,
+        d1 = self.get_data(1)
+        self.pb[self.i] = ('=', '#' + str(d), d1,)
+        self.i += 1
+        self.symbol_table.append(ArrayRow(self.declaration_stack[-2], 'id_array', self.declaration_stack[-3], d1,
                                           self.declaration_stack[-1]))
         self.declaration_pop(3)
 
@@ -187,5 +191,40 @@ class CodeGenerator(object):
         self.pb[self.i] = ('=', func_row.param_list[func_row.counter].address, self.semantic_stack[-1],)
         func_row.counter += 1
         self.i += 1
+        self.pop(1)
+
+    def jump_func_assign_return(self):
+        self.pb[self.i] = ('jp', self.semantic_stack[-2],)
+        self.i += 1
+        self.pb[self.i] = ('=', self.semantic_stack[-1],)
+        self.i += 1
+        self.pop(3)
+
+    def error_void_type(self):
+        print('Invalid input type')
+
+    def add_func(self):
+        d = self.get_data(1)
+        self.symbol_table.append(FunctionRow(self.declaration_stack[-1], 'id_func', self.declaration_stack[-2], self.i, d))
+        self.declaration_pop(2)
+        self.function_stack.append(len(self.symbol_table) - 1)
+
+    def add_single_id_param(self):
+        d = self.get_data(1)
+        self.symbol_table[self.function_stack[-1]].param_list.append(
+            IDRow(self.declaration_stack[-1], 'id_single', self.declaration_stack[-2], d))
+        self.declaration_pop(2)
+
+    def add_array_id_param(self):
+        d = self.get_data(1)
+        self.symbol_table[self.function_stack[-1]].param_list.append(
+            ArrayRow(self.declaration_stack[-1], 'id_array', self.declaration_stack[-2], d, None))
+        self.declaration_pop(2)
+
+    def pop_func_stack(self):
+        self.function_stack.pop(-1)
+
+    def set_return(self):
+        self.pb[self.i] = ('=', self.semantic_stack[-1], self.symbol_table[self.function_stack[-1]].return_param, )
         self.pop(1)
 
