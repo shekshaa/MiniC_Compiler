@@ -58,7 +58,7 @@ class CodeGenerator(object):
         self.declaration_stack.append('#' + str(num))
 
     def add_array_symbol_table(self):
-        d = self.get_data(self.declaration_stack[-1])
+        d = self.get_data(int(self.declaration_stack[-1][1:]))
         d1 = self.get_data(1)
         self.pb[self.i] = ('=', '#' + str(d), d1,)
         self.i += 1
@@ -222,24 +222,25 @@ class CodeGenerator(object):
         # print(self.pb)
         # print(self.semantic_stack)
         # print(self.print_symbol_table())
-        row_num = self.semantic_stack[-4]
-        self.pb[self.i] = ('=', self.symbol_table[row_num].param_list[self.symbol_table[row_num].counter].address, self.semantic_stack[-1],)
+        row_num = self.semantic_stack[-3]
+        self.pb[self.i] = ('=', self.semantic_stack[-1], self.symbol_table[row_num].param_list[self.symbol_table[row_num].counter].address,)
         self.symbol_table[row_num].counter += 1
         self.i += 1
         self.pop(1)
 
     def jump_func_assign_return(self):
-        row_num = self.semantic_stack[-3]
+        row_num = self.semantic_stack[-2]
         self.pb[self.i] = ('=', "#" + str(self.i + 2), self.symbol_table[row_num].return_place)
         self.i += 1
-        self.pb[self.i] = ('jp', self.semantic_stack[-2],)
+        self.pb[self.i] = ('jp', self.semantic_stack[-1],)
         self.i += 1
-        t = self.get_temp()
-        self.pb[self.i] = ('=', self.semantic_stack[-1], t)
-        self.i += 1
+        self.pop(2)
+        if self.symbol_table[row_num].return_type != 'void':
+            t = self.get_temp()
+            self.pb[self.i] = ('=', self.symbol_table[row_num].return_param, t)
+            self.i += 1
+            self.push(t)
         self.symbol_table[row_num].counter = 0
-        self.pop(3)
-        self.push(t)
 
     def error_void_type(self):
         raise Exception('Invalid input type')
