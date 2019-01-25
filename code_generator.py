@@ -2,18 +2,19 @@ from symbol_table import *
 
 
 class CodeGenerator(object):
-    def __init__(self, symbol_table):
+    def __init__(self):
         self.while_switch_stack = []
         self.while_stack = []
         self.declaration_stack = []
         self.function_stack = []
         self.semantic_stack = []
         self.temp_pointer = 500
-        self.pb = []
+        self.pb = [(None, None) for _ in range(1000)]
         self.i = 0
         self.data = []
         self.data_pointer = 100
-        self.symbol_table = symbol_table
+        # self.symbol_table_class = symbol_table
+        self.symbol_table = []
         self.scope_stack = [0]
 
     def push_scope(self):
@@ -85,9 +86,24 @@ class CodeGenerator(object):
     def push_num(self, num):
         self.semantic_stack.append('#' + str(num))
 
+    def search(self, id):
+        # print("Search id is:", id)
+        for i in range(len(self.symbol_table) - 1, -1, -1):
+            # print(self.symbol_table[i].token)
+            if self.symbol_table[i].token == id:
+                return i, self.symbol_table[i].address
+            if type(self.symbol_table[i]) == FunctionRow and not self.symbol_table[i].is_closed:
+                for param in self.symbol_table[i].param_list:
+                    if param.token == id:
+                        return i, param.address
+        return -1, -1
+
     def push_id_row_address(self, id):
-        row, address = self.symbol_table.search(id)
+        row, address = self.search(id)
         if row == -1:
+            # for i in range(len(self.symbol_table)):
+                # print(self.symbol_table[i].token)
+            # print(self.symbol_table[-1].param_list)
             raise Exception('Semantic Error not defined parameter')
         self.push(row)
         self.push(address)
@@ -198,7 +214,14 @@ class CodeGenerator(object):
         self.pb[top] = ('jp', self.i)
         self.while_switch_stack.pop(-1)
 
+    def print_symbol_table(self):
+        for i in range(len(self.symbol_table)):
+            print(self.symbol_table[i].token)
+
     def param_assign(self):
+        # print(self.pb)
+        # print(self.semantic_stack)
+        # print(self.print_symbol_table())
         row_num = self.semantic_stack[-4]
         self.pb[self.i] = ('=', self.symbol_table[row_num].param_list[self.symbol_table[row_num].counter].address, self.semantic_stack[-1],)
         self.symbol_table[row_num].counter += 1

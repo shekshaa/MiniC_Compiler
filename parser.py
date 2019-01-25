@@ -1,4 +1,3 @@
-from symbol_table import SymbolTable
 from scanner import Scanner
 from grammar import First, Follow
 from code_generator import CodeGenerator
@@ -6,10 +5,9 @@ from code_generator import CodeGenerator
 
 class Parser(object):
     def __init__(self, code_address):
-        self.symbol_table = SymbolTable()
         self.scanner = Scanner(code_address)
         self.semantic_stack = []
-        self.code_generator = CodeGenerator(self.symbol_table)
+        self.code_generator = CodeGenerator()
         self.stack = []
         self.state = 0
         self.lexeme, self.token = self.get_next_token()
@@ -30,6 +28,10 @@ class Parser(object):
         while True:
             print(self.state)
             print(self.token)
+            print('Semantic stack: ', self.code_generator.semantic_stack)
+            print('Declaration stack: ', self.code_generator.declaration_stack)
+            print('Function stack: ', self.code_generator.function_stack)
+            print('While switch stack:', self.code_generator.while_switch_stack)
             if self.state == 0:
                 if self.token == 'EOF':
                     self.state = 2
@@ -41,9 +43,8 @@ class Parser(object):
                     print('Missing term')
                 else:
                     self.invalid_input_error()
-
             elif self.state == 2:
-                return
+                break
             elif self.state == 8:
                 if self.token in First['type_sepc']:
                     self.stack.append(9)
@@ -133,7 +134,7 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 20:
                 self.move_back()
-                if self.state == 31 and self.code_generator.semantic_stack[-1] == 'void':
+                if self.state == 31 and self.code_generator.declaration_stack[-1] == 'void':
                     self.code_generator.error_void_type()
             elif self.state == 21:
                 if self.token == 'void':
@@ -159,7 +160,8 @@ class Parser(object):
                     self.stack.append(24)
                     self.state = 34
                 elif self.token in Follow['Y']:
-                    self.state = 24
+                    self.stack.append(24)
+                    self.state = 34
                 else:
                     self.invalid_input_error()
             elif self.state == 24:
@@ -219,7 +221,8 @@ class Parser(object):
                     self.stack.append(33)
                     self.state = 34
                 elif self.token in Follow['Y']:
-                    self.state = 33
+                    self.stack.append(33)
+                    self.state = 34
                 else:
                     self.invalid_input_error()
             elif self.state == 33:
@@ -637,7 +640,8 @@ class Parser(object):
                     self.stack.append(91)
                     self.state = 97
                 elif self.token in Follow['K']:
-                    self.state = 91
+                    self.stack.append(91)
+                    self.state = 97
                 else:
                     self.invalid_input_error()
             elif self.state == 89:
@@ -645,7 +649,8 @@ class Parser(object):
                     self.stack.append(90)
                     self.state = 130
                 elif self.token in Follow['args']:
-                    self.state = 90
+                    self.stack.append(90)
+                    self.state = 130
                 else:
                     self.invalid_input_error()
             elif self.state == 90:
@@ -896,7 +901,8 @@ class Parser(object):
                     self.stack.append(121)
                     self.state = 130
                 elif self.token in Follow['args']:
-                    self.state = 121
+                    self.stack.append(121)
+                    self.state = 130
                 else:
                     self.invalid_input_error()
             # elif self.state == 125:
@@ -957,3 +963,5 @@ class Parser(object):
                 self.move_back()
                 if self.state == 90 or self.state == 121:
                     self.code_generator.jump_func_assign_return()
+
+        print(self.code_generator.pb)
