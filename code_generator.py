@@ -187,19 +187,22 @@ class CodeGenerator(object):
         self.while_switch_stack.pop(-1)
 
     def param_assign(self):
-        func_row = self.symbol_table[self.semantic_stack[-4]]
-        self.pb[self.i] = ('=', func_row.param_list[func_row.counter].address, self.semantic_stack[-1],)
-        func_row.counter += 1
+        row_num = self.semantic_stack[-4]
+        self.pb[self.i] = ('=', self.symbol_table[row_num].param_list[self.symbol_table[row_num].counter].address, self.semantic_stack[-1],)
+        self.symbol_table[row_num].counter += 1
         self.i += 1
         self.pop(1)
 
     def jump_func_assign_return(self):
+        row_num = self.semantic_stack[-3]
+        self.pb[self.i] = ('=', "#" + str(self.i + 2), self.symbol_table[row_num].return_place)
+        self.i += 1
         self.pb[self.i] = ('jp', self.semantic_stack[-2],)
         self.i += 1
         t = self.get_temp()
         self.pb[self.i] = ('=', self.semantic_stack[-1], t)
         self.i += 1
-        self.symbol_table[self.semantic_stack[-3]].counter = 0
+        self.symbol_table[row_num].counter = 0
         self.pop(3)
         self.push(t)
 
@@ -207,8 +210,9 @@ class CodeGenerator(object):
         print('Invalid input type')
 
     def add_func(self):
-        d = self.get_data(1)
-        self.symbol_table.append(FunctionRow(self.declaration_stack[-1], 'id_func', self.declaration_stack[-2], self.i, d))
+        d1 = self.get_data(1)
+        d2 = self.get_data(2)
+        self.symbol_table.append(FunctionRow(self.declaration_stack[-1], 'id_func', self.declaration_stack[-2], self.i, d1, d2))
         self.declaration_pop(2)
         self.function_stack.append(len(self.symbol_table) - 1)
 
@@ -229,5 +233,8 @@ class CodeGenerator(object):
 
     def set_return(self):
         self.pb[self.i] = ('=', self.semantic_stack[-1], self.symbol_table[self.function_stack[-1]].return_param, )
+        self.i += 1
+        row_num = self.function_stack[-1]
+        self.pb[self.i] = ('jp', '@' + str(self.symbol_table[row_num].return_place),)
         self.pop(1)
 
