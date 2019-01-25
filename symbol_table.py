@@ -25,12 +25,13 @@ class NumRow(SymbolTableRow):
 
 
 class FunctionRow(SymbolTableRow):
-    def __init__(self, token, type, return_type, address, return_param):
+    def __init__(self, token, type, return_type, address, return_param, return_place):
         super(FunctionRow, self).__init__(token, type)
         self.return_type = return_type
         self.address = address
         self.param_list = []
         self.return_param = return_param
+        self.return_place = return_place
 
     def add_param_single(self, token, type, var_type, address):
         self.param_list.append(IDRow(token, type, var_type, address))
