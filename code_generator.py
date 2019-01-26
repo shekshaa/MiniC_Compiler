@@ -15,7 +15,6 @@ class CodeGenerator(object):
         self.data_pointer = 500
         self.symbol_table = [FunctionRow('output', 'id_function', 'void', -1, -1, -1)]
         d = self.get_data(1)
-        self.i += 1
         self.pb[self.i] = ('ASSIGN', '#0', d)
         self.i += 1
         self.symbol_table[0].param_list.append(IDRow('output_in', 'id_single', 'int', d))
@@ -52,8 +51,6 @@ class CodeGenerator(object):
 
     def push_id(self, id):
         self.declaration_stack.append(id)
-        if id == 'main':
-            self.pb[0] = ('JP', self.i)
 
     def add_single_symbol_table(self):
         d = self.get_data(1)
@@ -71,7 +68,7 @@ class CodeGenerator(object):
         self.pb[self.i] = ('ASSIGN', '#' + str(d), d1)
         self.i += 1
         for j in range(int(self.declaration_stack[-1][1:])):
-            self.pb[self.i] = ('ASSIGN', '#0', '@' + str(d + j * 4))
+            self.pb[self.i] = ('ASSIGN', '#0', d + j * 4)
             self.i += 1
         self.symbol_table.append(ArrayRow(self.declaration_stack[-2], 'id_array', self.declaration_stack[-3], d1,
                                           self.declaration_stack[-1]))
@@ -299,7 +296,7 @@ class CodeGenerator(object):
         self.declaration_pop(2)
 
     def pop_func_stack(self):
-        if self.symbol_table[self.function_stack[-1]].return_type == 'void':
+        if self.symbol_table[self.function_stack[-1]].return_type == 'void' and self.symbol_table[self.function_stack[-1]].token != 'main':
             self.pb[self.i] = ('JP', '@' + str(self.symbol_table[self.function_stack[-1]].return_place))
             self.i += 1
         if self.symbol_table[self.function_stack[-1]].token != 'main':
