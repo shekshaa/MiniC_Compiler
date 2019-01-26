@@ -8,13 +8,16 @@ class CodeGenerator(object):
         self.declaration_stack = []
         self.function_stack = []
         self.semantic_stack = []
-        self.temp_pointer = 500
+        self.temp_pointer = 1000
         self.pb = [(None, None) for _ in range(1000)]
         self.i = 0
         self.data = []
-        self.data_pointer = 100
+        self.data_pointer = 500
         self.symbol_table = [FunctionRow('output', 'id_function', 'void', -1, -1, -1)]
         d = self.get_data(1)
+        self.i += 1
+        self.pb[self.i] = ('ASSIGN', '#0', d)
+        self.i += 1
         self.symbol_table[0].param_list.append(IDRow('output_in', 'id_single', 'int', d))
         self.scope_stack = [0]
 
@@ -49,10 +52,14 @@ class CodeGenerator(object):
 
     def push_id(self, id):
         self.declaration_stack.append(id)
+        if id == 'main':
+            self.pb[0] = ('JP', self.i)
 
     def add_single_symbol_table(self):
         d = self.get_data(1)
         self.symbol_table.append(IDRow(self.declaration_stack[-1], 'id_single', self.declaration_stack[-2], d))
+        self.pb[self.i] = ('ASSIGN', '#0', d)
+        self.i += 1
         self.declaration_pop(2)
 
     def declaration_push_num(self, num):
@@ -63,6 +70,8 @@ class CodeGenerator(object):
         d1 = self.get_data(1)
         self.pb[self.i] = ('ASSIGN', '#' + str(d), d1)
         self.i += 1
+        for j in range(int(self.declaration_stack[-1][1:])):
+            self.pb[self.i] = ('ASSIGN', '#0', d + j * 4)
         self.symbol_table.append(ArrayRow(self.declaration_stack[-2], 'id_array', self.declaration_stack[-3], d1,
                                           self.declaration_stack[-1]))
         self.declaration_pop(3)
@@ -259,23 +268,36 @@ class CodeGenerator(object):
     def add_func(self):
         d1 = self.get_data(1)
         d2 = self.get_data(2)
+        self.pb[self.i] = ('ASSIGN', '#0', d1)
+        self.i += 1
+        self.pb[self.i] = ('ASSIGN', '#0', d2)
+        self.i += 1
+        self.save()
         self.symbol_table.append(FunctionRow(self.declaration_stack[-1], 'id_func', self.declaration_stack[-2], self.i, d1, d2))
         self.declaration_pop(2)
         self.function_stack.append(len(self.symbol_table) - 1)
 
     def add_single_id_param(self):
         d = self.get_data(1)
+        self.pb[self.i] = ('ASSIGN', '#0', d)
+        self.i += 1
         self.symbol_table[self.function_stack[-1]].param_list.append(
             IDRow(self.declaration_stack[-1], 'id_single', self.declaration_stack[-2], d))
         self.declaration_pop(2)
 
     def add_array_id_param(self):
         d = self.get_data(1)
+        self.pb[self.i] = ('ASSIGN', '#0', d)
+        self.i += 1
         self.symbol_table[self.function_stack[-1]].param_list.append(
             ArrayRow(self.declaration_stack[-1], 'id_array', self.declaration_stack[-2], d, None))
         self.declaration_pop(2)
 
     def pop_func_stack(self):
+        self.pb[self.i] = ('JP', '@' + str(self.symbol_table[self.function_stack[-1]].return_place))
+        self.i += 1
+        self.pb[self.semantic_stack[-1]] = ('JP', self.i)
+        self.pop(1)
         self.symbol_table[self.function_stack[-1]].is_closed = True
         self.function_stack.pop(-1)
 
