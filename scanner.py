@@ -3,7 +3,7 @@ class Scanner(object):
     reserved_id = ['output']
     whitespace = ['\t', '\n', '\r', ' ']
     # pre_num = ['-', '+', '*', 'case', '[']
-    pre_num = ['id', 'num']
+    pre_num = ['id', 'num', ')', ']']
     other_op = ['<', '*', ';', ':', ',', '(', ')', '[', ']', '{', '}']
     typ_dict = {'<': 'lt', '+': 'sum', '-': 'sub', '*': 'mult',
                 ';': 'semicolon', ':': 'colon', ',': 'comma',
