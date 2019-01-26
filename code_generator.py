@@ -61,7 +61,7 @@ class CodeGenerator(object):
     def add_array_symbol_table(self):
         d = self.get_data(int(self.declaration_stack[-1][1:]))
         d1 = self.get_data(1)
-        self.pb[self.i] = ('=', '#' + str(d), d1,)
+        self.pb[self.i] = ('ASSIGN', '#' + str(d), d1)
         self.i += 1
         self.symbol_table.append(ArrayRow(self.declaration_stack[-2], 'id_array', self.declaration_stack[-3], d1,
                                           self.declaration_stack[-1]))
@@ -75,7 +75,14 @@ class CodeGenerator(object):
         self.i += 1
 
     def save_operator(self, operator):
-        self.push(operator)
+        if operator == '<':
+            self.push('LT')
+        elif operator == '==':
+            self.push('ASSIGN')
+        elif operator == '-':
+            self.push('SUB')
+        elif operator == '+':
+            self.push('ADD')
 
     def add_sub_compare(self):
         t = self.get_temp()
@@ -117,10 +124,10 @@ class CodeGenerator(object):
 
     def array_addr_finder(self):
         t = self.get_temp()
-        self.pb[self.i] = ('*', '#4', self.semantic_stack[-1], t)
+        self.pb[self.i] = ('MULT', '#4', self.semantic_stack[-1], t)
         self.i += 1
         t1 = self.get_temp()
-        self.pb[self.i] = ('+', t, self.semantic_stack[-2], t1)
+        self.pb[self.i] = ('ADD', t, self.semantic_stack[-2], t1)
         self.i += 1
         # t2 = self.get_temp()
         # self.pb[self.i] = ('=', '@' + str(t), t2)
@@ -129,7 +136,7 @@ class CodeGenerator(object):
         self.push('@' + str(t1))
 
     def assign(self):
-        self.pb[self.i] = ('=', self.semantic_stack[-1], self.semantic_stack[-2], )
+        self.pb[self.i] = ('ASSIGN', self.semantic_stack[-1], self.semantic_stack[-2])
         self.i += 1
         self.pop(1)
 
@@ -138,16 +145,16 @@ class CodeGenerator(object):
         self.i += 1
 
     def if_jpf_save(self):
-        self.pb[self.semantic_stack[-1]] = ('jpf', self.semantic_stack[-2], self.i + 1)
+        self.pb[self.semantic_stack[-1]] = ('JPF', self.semantic_stack[-2], self.i + 1)
         self.pop(2)
         self.save()
 
     def if_jp(self):
-        self.pb[self.semantic_stack[-1]] = ('jp', self.i,)
+        self.pb[self.semantic_stack[-1]] = ('JP', self.i)
         self.pop(1)
 
     def while_label(self):
-        self.pb[self.i] = ('jp', self.i + 2,)
+        self.pb[self.i] = ('JP', self.i + 2)
         self.i += 1
         self.while_switch_stack.append(('w', self.i))
         self.while_stack.append(('w', self.i))
@@ -156,13 +163,13 @@ class CodeGenerator(object):
     def break_jp(self):
         top = self.top_while_switch()
         if top is not None:
-            self.pb[self.i] = ('jp', top, )
+            self.pb[self.i] = ('JP', top)
             self.i += 1
 
     def continue_jp(self):
         top = self.top_while()
         if top is not None:
-            self.pb[self.i] = ('jp', top + 1,)
+            self.pb[self.i] = ('JP', top + 1)
             self.i += 1
 
     def top_while(self):
@@ -182,17 +189,17 @@ class CodeGenerator(object):
         return top
 
     def while_end(self):
-        self.pb[self.semantic_stack[-1]] = ('jpf', self.semantic_stack[-2], self.i + 1, )
+        self.pb[self.semantic_stack[-1]] = ('JPF', self.semantic_stack[-2], self.i + 1)
         top = self.top_while()
-        self.pb[self.i] = ('jp', top + 1,)
+        self.pb[self.i] = ('JP', top + 1)
         self.i += 1
-        self.pb[top] = ('jp', self.i,)
+        self.pb[top] = ('JP', self.i)
         self.pop(2)
         self.while_stack.pop(-1)
         self.while_switch_stack.pop(-1)
 
     def switch_label(self):
-        self.pb[self.i] = ('jp', self.i + 2,)
+        self.pb[self.i] = ('JP', self.i + 2)
         self.i += 1
         self.while_switch_stack.append(('s', self.i))
         self.i += 1
@@ -206,13 +213,13 @@ class CodeGenerator(object):
         self.save()
 
     def end_case(self):
-        self.pb[self.semantic_stack[-1]] = ('jpf', self.semantic_stack[-2], self.i, )
+        self.pb[self.semantic_stack[-1]] = ('JPF', self.semantic_stack[-2], self.i)
         self.pop(2)
 
     def end_switch(self):
         self.pop(1)
         top = self.top_while_switch()
-        self.pb[top] = ('jp', self.i)
+        self.pb[top] = ('JP', self.i)
         self.while_switch_stack.pop(-1)
 
     def print_symbol_table(self):
@@ -221,7 +228,7 @@ class CodeGenerator(object):
 
     def param_assign(self):
         row_num = self.semantic_stack[-3]
-        self.pb[self.i] = ('=', self.semantic_stack[-1], self.symbol_table[row_num].param_list[self.symbol_table[row_num].counter].address,)
+        self.pb[self.i] = ('ASSIGN', self.semantic_stack[-1], self.symbol_table[row_num].param_list[self.symbol_table[row_num].counter].address)
         self.symbol_table[row_num].counter += 1
         self.i += 1
         self.pop(1)
@@ -231,15 +238,17 @@ class CodeGenerator(object):
         if self.symbol_table[row_num].token == 'output':
             self.pb[self.i] = ('PRINT', self.symbol_table[row_num].param_list[0].address)
             self.i += 1
+            self.pop(1)
+            self.symbol_table[row_num].counter = 0
         else:
-            self.pb[self.i] = ('=', "#" + str(self.i + 2), self.symbol_table[row_num].return_place)
+            self.pb[self.i] = ('ASSIGN', "#" + str(self.i + 2), self.symbol_table[row_num].return_place)
             self.i += 1
-            self.pb[self.i] = ('jp', self.semantic_stack[-1],)
+            self.pb[self.i] = ('JP', self.semantic_stack[-1])
             self.i += 1
             self.pop(2)
             if self.symbol_table[row_num].return_type != 'void':
                 t = self.get_temp()
-                self.pb[self.i] = ('=', self.symbol_table[row_num].return_param, t)
+                self.pb[self.i] = ('ASSIGN', self.symbol_table[row_num].return_param, t)
                 self.i += 1
                 self.push(t)
             self.symbol_table[row_num].counter = 0
@@ -271,8 +280,9 @@ class CodeGenerator(object):
         self.function_stack.pop(-1)
 
     def set_return(self):
-        self.pb[self.i] = ('=', self.semantic_stack[-1], self.symbol_table[self.function_stack[-1]].return_param, )
+        self.pb[self.i] = ('ASSIGN', self.semantic_stack[-1], self.symbol_table[self.function_stack[-1]].return_param)
         self.i += 1
         row_num = self.function_stack[-1]
-        self.pb[self.i] = ('jp', '@' + str(self.symbol_table[row_num].return_place),)
+        self.pb[self.i] = ('JP', '@' + str(self.symbol_table[row_num].return_place))
+        self.i += 1
         self.pop(1)
