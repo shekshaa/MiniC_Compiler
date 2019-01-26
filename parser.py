@@ -87,6 +87,7 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 12:
                 if self.token == ')':
+                    self.code_generator.set_jump_address()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 14
                 else:
@@ -450,6 +451,7 @@ class Parser(object):
                     self.invalid_input_error()
             elif self.state == 63:
                 if self.token == ';':
+                    self.code_generator.empty_return()
                     self.lexeme, self.token = self.get_next_token()
                     self.state = 64
                 elif self.token in First['exp']:
