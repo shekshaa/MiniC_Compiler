@@ -18,7 +18,7 @@ class CodeGenerator(object):
         self.pb[self.i] = ('ASSIGN', '#0', d)
         self.i += 1
         self.symbol_table[0].param_list.append(IDRow('output_in', 'id_single', 'int', d))
-        self.scope_stack = [0]
+        self.scope_stack = [-1]
 
     def push_scope(self):
         self.scope_stack.append(len(self.symbol_table))
@@ -52,7 +52,13 @@ class CodeGenerator(object):
     def push_id(self, id):
         self.declaration_stack.append(id)
 
+    def check_same_scope_id(self, id):
+        for i in range(self.scope_stack[-1], len(self.symbol_table)):
+            if self.symbol_table[i].token == id:
+                raise Exception('Id declared in same scope')
+
     def add_single_symbol_table(self):
+        self.check_same_scope_id(self.declaration_stack[-1])
         if self.declaration_stack[-2] == 'void':
             raise Exception('Invalid type')
         d = self.get_data(1)
@@ -65,6 +71,7 @@ class CodeGenerator(object):
         self.declaration_stack.append('#' + str(num))
 
     def add_array_symbol_table(self):
+        self.check_same_scope_id(self.declaration_stack[-2])
         if self.declaration_stack[-3] == 'void':
             raise Exception('Invalid type')
         d = self.get_data(int(self.declaration_stack[-1][1:]))
@@ -106,9 +113,7 @@ class CodeGenerator(object):
         self.semantic_stack.append('#' + str(num))
 
     def search(self, id):
-        # print("Search id is:", id)
         for i in range(len(self.symbol_table) - 1, -1, -1):
-            # print(self.symbol_table[i].token)
             if self.symbol_table[i].token == id:
                 return i, self.symbol_table[i].address
             if type(self.symbol_table[i]) == FunctionRow and not self.symbol_table[i].is_closed:
