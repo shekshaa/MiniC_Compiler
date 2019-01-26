@@ -96,7 +96,7 @@ class CodeGenerator(object):
         if operator == '<':
             self.push('LT')
         elif operator == '==':
-            self.push('ASSIGN')
+            self.push('EQ')
         elif operator == '-':
             self.push('SUB')
         elif operator == '+':
