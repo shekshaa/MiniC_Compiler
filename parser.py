@@ -896,7 +896,8 @@ class Parser(object):
                     self.stack.append(122)
                     self.state = 97
                 elif self.token in Follow['K']:
-                    self.state = 122
+                    self.stack.append(122)
+                    self.state = 97
                 else:
                     self.invalid_input_error()
             elif self.state == 124:
