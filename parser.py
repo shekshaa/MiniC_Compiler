@@ -964,4 +964,7 @@ class Parser(object):
                 if self.state == 90 or self.state == 121:
                     self.code_generator.jump_func_assign_return()
 
-        print(self.code_generator.pb)
+        for i, pb in enumerate(self.code_generator.pb):
+            if pb == (None, None):
+                break
+            print('{} : {}'.format(i, pb))
