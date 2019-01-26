@@ -13,8 +13,9 @@ class CodeGenerator(object):
         self.i = 0
         self.data = []
         self.data_pointer = 100
-        # self.symbol_table_class = symbol_table
-        self.symbol_table = []
+        self.symbol_table = [FunctionRow('output', 'id_function', 'void', -1, -1, -1)]
+        d = self.get_data(1)
+        self.symbol_table[0].param_list.append(IDRow('output_in', 'id_single', 'int', d))
         self.scope_stack = [0]
 
     def push_scope(self):
@@ -121,11 +122,11 @@ class CodeGenerator(object):
         t1 = self.get_temp()
         self.pb[self.i] = ('+', t, self.semantic_stack[-2], t1)
         self.i += 1
-        t2 = self.get_temp()
-        self.pb[self.i] = ('=', '@' + str(t), t2)
-        self.i += 1
+        # t2 = self.get_temp()
+        # self.pb[self.i] = ('=', '@' + str(t), t2)
+        # self.i += 1
         self.pop(2)
-        self.push(t2)
+        self.push('@' + str(t1))
 
     def assign(self):
         self.pb[self.i] = ('=', self.semantic_stack[-1], self.semantic_stack[-2], )
@@ -219,9 +220,6 @@ class CodeGenerator(object):
             print(self.symbol_table[i].token)
 
     def param_assign(self):
-        # print(self.pb)
-        # print(self.semantic_stack)
-        # print(self.print_symbol_table())
         row_num = self.semantic_stack[-3]
         self.pb[self.i] = ('=', self.semantic_stack[-1], self.symbol_table[row_num].param_list[self.symbol_table[row_num].counter].address,)
         self.symbol_table[row_num].counter += 1
@@ -230,17 +228,21 @@ class CodeGenerator(object):
 
     def jump_func_assign_return(self):
         row_num = self.semantic_stack[-2]
-        self.pb[self.i] = ('=', "#" + str(self.i + 2), self.symbol_table[row_num].return_place)
-        self.i += 1
-        self.pb[self.i] = ('jp', self.semantic_stack[-1],)
-        self.i += 1
-        self.pop(2)
-        if self.symbol_table[row_num].return_type != 'void':
-            t = self.get_temp()
-            self.pb[self.i] = ('=', self.symbol_table[row_num].return_param, t)
+        if self.symbol_table[row_num].token == 'output':
+            self.pb[self.i] = ('PRINT', self.symbol_table[row_num].param_list[0].address)
             self.i += 1
-            self.push(t)
-        self.symbol_table[row_num].counter = 0
+        else:
+            self.pb[self.i] = ('=', "#" + str(self.i + 2), self.symbol_table[row_num].return_place)
+            self.i += 1
+            self.pb[self.i] = ('jp', self.semantic_stack[-1],)
+            self.i += 1
+            self.pop(2)
+            if self.symbol_table[row_num].return_type != 'void':
+                t = self.get_temp()
+                self.pb[self.i] = ('=', self.symbol_table[row_num].return_param, t)
+                self.i += 1
+                self.push(t)
+            self.symbol_table[row_num].counter = 0
 
     def error_void_type(self):
         raise Exception('Invalid input type')
