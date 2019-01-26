@@ -4,10 +4,11 @@ from code_generator import CodeGenerator
 
 
 class Parser(object):
-    def __init__(self, code_address):
+    def __init__(self, code_address, code_generated_address):
         self.scanner = Scanner(code_address)
         self.semantic_stack = []
         self.code_generator = CodeGenerator()
+        self.code_generated_address = code_generated_address
         self.stack = []
         self.state = 0
         self.lexeme, self.token = self.get_next_token()
@@ -964,7 +965,21 @@ class Parser(object):
                 if self.state == 90 or self.state == 121:
                     self.code_generator.jump_func_assign_return()
 
+        final_code = ""
         for i, pb in enumerate(self.code_generator.pb):
             if pb == (None, None):
                 break
-            print('{} : {}'.format(i, pb))
+            final_code += str(i) + '\t('
+            for j in range(len(pb)):
+                final_code += str(pb[j]) + ', '
+            if len(pb) == 4:
+                final_code = final_code[:-2]
+                final_code += ')'
+            else:
+                for j in range(3 - len(pb)):
+                    final_code += ', '
+                final_code += ')'
+            final_code += '\n'
+        with open(self.code_generated_address, mode='w') as file:
+            file.write(final_code)
+            file.close()
