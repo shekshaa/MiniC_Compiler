@@ -71,7 +71,8 @@ class CodeGenerator(object):
         self.pb[self.i] = ('ASSIGN', '#' + str(d), d1)
         self.i += 1
         for j in range(int(self.declaration_stack[-1][1:])):
-            self.pb[self.i] = ('ASSIGN', '#0', d + j * 4)
+            self.pb[self.i] = ('ASSIGN', '#0', '@' + str(d + j * 4))
+            self.i += 1
         self.symbol_table.append(ArrayRow(self.declaration_stack[-2], 'id_array', self.declaration_stack[-3], d1,
                                           self.declaration_stack[-1]))
         self.declaration_pop(3)
@@ -255,11 +256,11 @@ class CodeGenerator(object):
             self.pb[self.i] = ('JP', self.semantic_stack[-1])
             self.i += 1
             self.pop(2)
+            t = self.get_temp()
             if self.symbol_table[row_num].return_type != 'void':
-                t = self.get_temp()
                 self.pb[self.i] = ('ASSIGN', self.symbol_table[row_num].return_param, t)
                 self.i += 1
-                self.push(t)
+            self.push(t)
             self.symbol_table[row_num].counter = 0
 
     def error_void_type(self):
@@ -268,12 +269,16 @@ class CodeGenerator(object):
     def add_func(self):
         d1 = self.get_data(1)
         d2 = self.get_data(2)
+        if self.declaration_stack[-1] != 'main':
+            self.save()
         self.pb[self.i] = ('ASSIGN', '#0', d1)
         self.i += 1
-        self.pb[self.i] = ('ASSIGN', '#0', d2)
-        self.i += 1
-        self.save()
-        self.symbol_table.append(FunctionRow(self.declaration_stack[-1], 'id_func', self.declaration_stack[-2], self.i, d1, d2))
+        if self.declaration_stack[-1] != 'main':
+            self.pb[self.i] = ('ASSIGN', '#0', d2)
+            self.i += 1
+        else:
+            self.save()
+        self.symbol_table.append(FunctionRow(self.declaration_stack[-1], 'id_func', self.declaration_stack[-2], None, d1, d2))
         self.declaration_pop(2)
         self.function_stack.append(len(self.symbol_table) - 1)
 
@@ -294,9 +299,13 @@ class CodeGenerator(object):
         self.declaration_pop(2)
 
     def pop_func_stack(self):
-        self.pb[self.i] = ('JP', '@' + str(self.symbol_table[self.function_stack[-1]].return_place))
-        self.i += 1
-        self.pb[self.semantic_stack[-1]] = ('JP', self.i)
+        if self.symbol_table[self.function_stack[-1]].return_type == 'void':
+            self.pb[self.i] = ('JP', '@' + str(self.symbol_table[self.function_stack[-1]].return_place))
+            self.i += 1
+        if self.symbol_table[self.function_stack[-1]].token != 'main':
+            self.pb[self.semantic_stack[-1]] = ('JP', self.i)
+        else:
+            self.pb[self.semantic_stack[-1]] = ('ASSIGN', '#' + str(self.i), self.symbol_table[self.function_stack[-1]].return_place)
         self.pop(1)
         self.symbol_table[self.function_stack[-1]].is_closed = True
         self.function_stack.pop(-1)
@@ -308,3 +317,10 @@ class CodeGenerator(object):
         self.pb[self.i] = ('JP', '@' + str(self.symbol_table[row_num].return_place))
         self.i += 1
         self.pop(1)
+
+    def set_jump_address(self):
+        self.symbol_table[self.function_stack[-1]].address = self.i
+
+    def empty_return(self):
+        self.pb[self.i] = ('JP', '@' + str(self.symbol_table[self.function_stack[-1]].return_place))
+        self.i += 1
