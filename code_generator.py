@@ -53,6 +53,8 @@ class CodeGenerator(object):
         self.declaration_stack.append(id)
 
     def add_single_symbol_table(self):
+        if self.declaration_stack[-2] == 'void':
+            raise Exception('Invalid type')
         d = self.get_data(1)
         self.symbol_table.append(IDRow(self.declaration_stack[-1], 'id_single', self.declaration_stack[-2], d))
         self.pb[self.i] = ('ASSIGN', '#0', d)
@@ -63,6 +65,8 @@ class CodeGenerator(object):
         self.declaration_stack.append('#' + str(num))
 
     def add_array_symbol_table(self):
+        if self.declaration_stack[-3] == 'void':
+            raise Exception('Invalid type')
         d = self.get_data(int(self.declaration_stack[-1][1:]))
         d1 = self.get_data(1)
         self.pb[self.i] = ('ASSIGN', '#' + str(d), d1)
@@ -184,7 +188,7 @@ class CodeGenerator(object):
         try:
             top = self.while_stack[-1][1]
         except:
-            print("Semantic error no while")
+            raise Exception("Semantic error no while")
         return top
 
     def top_while_switch(self):
@@ -192,7 +196,7 @@ class CodeGenerator(object):
         try:
             top = self.while_switch_stack[-1][1]
         except:
-            print("Semantic error no while or case")
+            raise Exception("Semantic error no while or case")
         return top
 
     def while_end(self):
@@ -242,6 +246,8 @@ class CodeGenerator(object):
 
     def jump_func_assign_return(self):
         row_num = self.semantic_stack[-2]
+        if self.symbol_table[row_num].counter != len(self.symbol_table[row_num].param_list):
+            raise Exception('Need more arguments')
         if self.symbol_table[row_num].token == 'output':
             self.pb[self.i] = ('PRINT', self.symbol_table[row_num].param_list[0].address)
             self.i += 1
@@ -268,6 +274,8 @@ class CodeGenerator(object):
         d2 = self.get_data(2)
         if self.declaration_stack[-1] != 'main':
             self.save()
+        elif self.declaration_stack[-2] != 'void':
+            raise Exception('Main has no return')
         self.pb[self.i] = ('ASSIGN', '#0', d1)
         self.i += 1
         if self.declaration_stack[-1] != 'main':
