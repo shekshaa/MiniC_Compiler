@@ -27,12 +27,12 @@ class Parser(object):
     def parse(self):
         self.state = 0
         while True:
-            print(self.state)
-            print(self.token)
-            print('Semantic stack: ', self.code_generator.semantic_stack)
-            print('Declaration stack: ', self.code_generator.declaration_stack)
-            print('Function stack: ', self.code_generator.function_stack)
-            print('While switch stack:', self.code_generator.while_switch_stack)
+            # print(self.state)
+            # print(self.token)
+            # print('Semantic stack: ', self.code_generator.semantic_stack)
+            # print('Declaration stack: ', self.code_generator.declaration_stack)
+            # print('Function stack: ', self.code_generator.function_stack)
+            # print('While switch stack:', self.code_generator.while_switch_stack)
             if self.state == 0:
                 if self.token == 'EOF':
                     self.state = 2
