@@ -68,6 +68,8 @@ class CodeGenerator(object):
         self.declaration_pop(2)
 
     def declaration_push_num(self, num):
+        if int(num) <= 0:
+            raise Exception('Negative size of array')
         self.declaration_stack.append('#' + str(num))
 
     def add_array_symbol_table(self):
@@ -87,7 +89,7 @@ class CodeGenerator(object):
 
     def mult(self):
         t = self.get_temp()
-        self.pb[self.i] = ('*', self.semantic_stack[-1], self.semantic_stack[-2], t)
+        self.pb[self.i] = ('MULT', self.semantic_stack[-1], self.semantic_stack[-2], t)
         self.pop(2)
         self.push(t)
         self.i += 1
@@ -288,6 +290,7 @@ class CodeGenerator(object):
             self.i += 1
         else:
             self.save()
+        self.check_same_scope_id(self.declaration_stack[-1])
         self.symbol_table.append(FunctionRow(self.declaration_stack[-1], 'id_func', self.declaration_stack[-2], None, d1, d2))
         self.declaration_pop(2)
         self.function_stack.append(len(self.symbol_table) - 1)
@@ -332,5 +335,7 @@ class CodeGenerator(object):
         self.symbol_table[self.function_stack[-1]].address = self.i
 
     def empty_return(self):
+        if self.symbol_table[self.function_stack[-1]].return_type == 'int':
+            raise Exception('Need return')
         self.pb[self.i] = ('JP', '@' + str(self.symbol_table[self.function_stack[-1]].return_place))
         self.i += 1
